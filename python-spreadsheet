@@ -1,0 +1,30 @@
+import pandas as pd
+
+import sys
+# Will handle the command line
+
+# Columns to keep
+keep_columns = [
+    "SparkFun Part Number",
+    "Part Description",
+    "BOM Quantity",
+    "Primary Vendor",
+    "Primary Vendor Part Number",
+    "Primary Vendor Cost",
+    "Alternate Manufacturer",
+    "Alternate Manufactuerer Part Number",
+]
+
+
+def pandas_lib_spreadsheet(path_to_spreadsheet):
+    print(f"Reading from: {path_to_spreadsheet}\n")
+    # Insanely powerful ability to both read a csv and keep specific columns from it within one function call.
+    new_csv = pd.read_csv(path_to_spreadsheet, usecols=keep_columns)
+    # Without the "index = False" line there is an extra column added in column "A" listing the index.
+    # of the rows.
+    new_csv.to_csv("Updated_BOM.csv", index=False)
+
+
+if __name__ == "__main__":
+    path_to_spreadsheet = sys.argv[1]
+    pandas_lib_spreadsheet(path_to_spreadsheet)
