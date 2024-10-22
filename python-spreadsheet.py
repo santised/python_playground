@@ -48,11 +48,10 @@ def ulp_csv_update(path_to_spreadsheet):
     # Split by path designators and keep the last split which is the file itself.
     truncated_path = path_to_spreadsheet.split("/")[-1]
     print(f"\nReading from {truncated_path}\n")
-    # Read in the given csb, can be position or BOM csv.
+    # Read in the given cs, can be position or BOM csv.
     csv_pd = pd.read_csv(path_to_spreadsheet)
-    # So we're checking the "Designator" column and checking if a row/s
-    # within contain the given strings. We don't want those (!) so return the rest
-    # into swapped.
+    # In the "Designator" column, check rows for passed strings.
+    # Those are ignored (!) and the rest is saved.
     swapped_csv = csv_pd[
         ~csv_pd["Designator"].str.contains(remove_rows[0])
         & ~csv_pd["Designator"].str.contains(remove_rows[1])
