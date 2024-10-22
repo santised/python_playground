@@ -1,7 +1,5 @@
 import pandas as pd
-
 import sys
-# Will handle the command line
 
 # Columns to keep
 keep_columns = [
@@ -31,7 +29,7 @@ def bom_assembly_update(path_to_spreadsheet, arg):
         # Read in the given csb, can be position or BOM csv.
         csv_pd = pd.read_csv(path_to_spreadsheet)
         # So we're checking the "Designator" column and checking if a row/s
-        # within contain the given strings. We don't want those so return the rest
+        # within contain the given strings. We don't want those (!) so return the rest
         # into swapped.
         swapped_csv = csv_pd[
             ~csv_pd["Designator"].str.contains(remove_rows[0])
@@ -39,7 +37,7 @@ def bom_assembly_update(path_to_spreadsheet, arg):
         ]
         # Print it so that we can check it at a glance on the terminal
         print(swapped_csv)
-        # If it's a position file "CPL" output that, if not then output "BOM"
+        # If it's a position file "CPL" output that, otherwise it's a BOM
         if "cpl" in path_to_spreadsheet:
             print("Updated_JLCPCB_CPL.csv")
             swapped_csv.to_csv("Updated_JLCPCB_CPL.csv")
