@@ -11,12 +11,10 @@ keep_columns = [
     "Primary Vendor",
     "Primary Vendor Part Number",
     "Primary Vendor Cost",
-    "Alternate Manufacturer",
-    "Alternate Manufactuerer Part Number",
 ]
 
 # @brief An array of strings to compare csv files against.
-remove_rows = ["FD", "TP"]
+match_labels = ["FD", "TP", "FID", "SJ"]
 
 
 # ███████╗██╗   ██╗███╗   ██╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗███████╗
@@ -34,8 +32,12 @@ remove_rows = ["FD", "TP"]
 def sparkle_assembly_update(path_to_spreadsheet):
     truncated_path = path_to_spreadsheet.split("/")[-1]
     print(f"\nReading from {truncated_path}\n")
-    # Insanely powerful ability to both read a csv and keep specific columns from it within one function call.
-    new_csv = pd.read_csv(path_to_spreadsheet, usecols=keep_columns)
+    # Insanely powerful ability to both read a csv, keep specific columns, and sort alphabetically
+    # from within one function call.
+    new_csv = pd.read_csv(path_to_spreadsheet, usecols=keep_columns).sort_values(
+        "SparkFun Part Number"
+    )
+    print(new_csv)
     # Without the "index = False" line there is an extra column added in column "A" listing the index.
     # of the rows.
     new_csv.to_csv("Updated_Sparkle_BOM.csv", index=False)
@@ -50,21 +52,19 @@ def ulp_csv_update(path_to_spreadsheet):
     print(f"\nReading from {truncated_path}\n")
     # Read in the given cs, can be position or BOM csv.
     csv_pd = pd.read_csv(path_to_spreadsheet)
-    # In the "Designator" column, check rows for passed strings.
-    # Those are ignored (!) and the rest is saved.
-    swapped_csv = csv_pd[
-        ~csv_pd["Designator"].str.contains(remove_rows[0])
-        & ~csv_pd["Designator"].str.contains(remove_rows[1])
-    ]
+    # Return a copy of the csv that removes the rows from the column "Designator" that match the labels within
+    # "match_labels". Note that this is in fact making a csv that match the labels of the list, but inverts the
+    # matching behavior: ~
+    updated_csv = csv_pd[~csv_pd["Designator"].str.contains("|".join(match_labels))]
     # Print it so that we can check it at a glance on the terminal
-    print(swapped_csv)
+    print(updated_csv)
     # If it's a position file "CPL" output that, otherwise it's a BOM
     if "cpl" in path_to_spreadsheet:
         print("Updated_JLCPCB_CPL.csv")
-        swapped_csv.to_csv("Updated_JLCPCB_CPL.csv")
+        updated_csv.to_csv("Updated_JLCPCB_CPL.csv")
     else:
         print("Updated_JLCPCB_BOM.csv")
-        swapped_csv.to_csv("Updated_JLCPCB_BOM.csv")
+        updated_csv.to_csv("Updated_JLCPCB_BOM.csv")
 
 
 #
