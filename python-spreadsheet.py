@@ -16,6 +16,8 @@ keep_columns = [
 # @brief An array of strings to compare csv files against.
 match_labels = ["FD", "TP", "FID", "SJ"]
 
+# @brief Path fo csv output.
+csv_path = "/SparkFun/JLCPCB-Transfer-Eagle-Files/Updated_"
 
 # ███████╗██╗   ██╗███╗   ██╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗███████╗
 # ██╔════╝██║   ██║████╗  ██║██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║██╔════╝
@@ -60,11 +62,11 @@ def ulp_csv_update(path_to_spreadsheet):
     print(updated_csv)
     # If it's a position file "CPL" output that, otherwise it's a BOM
     if "cpl" in path_to_spreadsheet:
-        print("Updated_JLCPCB_CPL.csv")
-        updated_csv.to_csv("Updated_JLCPCB_CPL.csv")
+        print("Placed here: {0}{1}".format(csv_path, truncated_path))
+        updated_csv.to_csv("~{0}{1}.csv".format(csv_path, truncated_path))
     else:
-        print("Updated_JLCPCB_BOM.csv")
-        updated_csv.to_csv("Updated_JLCPCB_BOM.csv")
+        print("Placed here: {0}{1}".format(csv_path, truncated_path))
+        updated_csv.to_csv("~{0}{1}.csv".format(csv_path, truncated_path))
 
 
 #
@@ -79,5 +81,10 @@ if __name__ == "__main__":
     path_to_spreadsheet = sys.argv[1]
     if sys.argv[2] == "0":
         sparkle_assembly_update(path_to_spreadsheet)
-    if sys.argv[2] == "1":
+    elif sys.argv[2] == "1":
         ulp_csv_update(path_to_spreadsheet)
+    else:
+        print("Choose between 0 and 1")
+        print("0 = Sparkle BOM")
+        print("1 = Eagle JLCPCB ULP BOM and CPL")
+        sys.exit(1)
