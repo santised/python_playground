@@ -14,7 +14,7 @@ keep_columns = [
 ]
 
 # @brief An array of strings to compare csv files against.
-match_labels = ["FD", "TP", "FID", "SJ", "DNP", "JP"]
+exclude_labels = ["FD", "TP", "FID", "SJ", "DNP", "JP"]
 
 # @brief Path fo csv output.
 csv_path = "/SparkFun/JLCPCB-Transfer-Eagle-Files/Updated_"
@@ -56,9 +56,9 @@ def ulp_csv_update(path_to_spreadsheet):
     # Read in the given cs, can be position or BOM csv.
     csv_pd = pd.read_csv(path_to_spreadsheet)
     # Return a copy of the csv that removes the rows from the column "Designator" that match the labels within
-    # "match_labels". Note that this is in fact making a csv that match the labels of the list, but inverts the
+    # "exclude_labels". Note that this is in fact making a csv that match the labels of the list, but inverts the
     # matching behavior: ~
-    updated_csv = csv_pd[~csv_pd["Designator"].str.contains("|".join(match_labels))]
+    updated_csv = csv_pd[~csv_pd["Designator"].str.contains("|".join(exclude_labels))]
     alphabetized_csv = updated_csv.sort_values("Designator")
     # Print it so that we can check it at a glance on the terminal
     print(alphabetized_csv)
