@@ -14,7 +14,7 @@ keep_columns = [
 ]
 
 # @brief An array of strings to compare csv files against.
-match_labels = ["FD", "TP", "FID", "SJ", "DNP"]
+match_labels = ["FD", "TP", "FID", "SJ", "DNP", "JP"]
 
 # @brief Path fo csv output.
 csv_path = "/SparkFun/JLCPCB-Transfer-Eagle-Files/Updated_"
