@@ -80,10 +80,10 @@ def ulp_csv_update(path_to_spreadsheet):
 # ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
 #
 if __name__ == "__main__":
-    path_to_spreadsheet = sys.argv[1]
-    if sys.argv[2] == "0":
+    path_to_spreadsheet = sys.argv[2]
+    if sys.argv[1] == "0":
         sparkle_assembly_update(path_to_spreadsheet)
-    elif sys.argv[2] == "1":
+    elif sys.argv[1] == "1":
         ulp_csv_update(path_to_spreadsheet)
     else:
         print("Choose between 0 and 1")
