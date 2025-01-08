@@ -17,7 +17,7 @@ keep_columns = [
 exclude_labels = ["FD", "TP", "FID", "SJ", "DNP", "JP"]
 
 # @brief Path fo csv output.
-csv_path = "~/SparkFun/ContractManufacturingFiles/"
+csv_path = "/SparkFun/ContractManufacturingFiles/"
 
 # ███████╗██╗   ██╗███╗   ██╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗███████╗
 # ██╔════╝██║   ██║████╗  ██║██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║██╔════╝

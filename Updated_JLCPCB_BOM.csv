@@ -1,8 +1,0 @@
-,Comment,Designator,Footprint,LCSC Part #
-0,0.1uF,C1,0603,
-1,1k,R6,0603,
-2,4.7k,R1 R2,0603,
-3,10k,R5,0603,
-5,QWIIC,J1 J2,JST04_1MM_RA,
-6,RED,D1,LED-0603,
-7,TMP102,U1,SOT563,
