@@ -5,7 +5,6 @@ import os
 thumbnail_size = (500, 500)
 root = "/home/amo/Git-Personal/python_playground/"
 
-
 """
      ██╗██████╗ ███████╗ ██████╗ 
      ██║██╔══██╗██╔════╝██╔════╝ 
@@ -18,6 +17,10 @@ root = "/home/amo/Git-Personal/python_playground/"
 
 def convert_image(file_path, webp_file):
     name, extension = os.path.splitext(webp_file)
+
+    if extension != ".webp":
+        return
+
     jpeg_file = name + ".jpg"
     try:
         with Image.open(os.path.join(file_path, webp_file), "r") as wf:
@@ -39,6 +42,10 @@ def convert_image(file_path, webp_file):
 
 def create_thumbnails(file_path, big_pic):
     name, extension = os.path.splitext(big_pic)
+
+    if extension != ".jpg":
+        return
+
     thumbnail_name = "thumb_" + name + extension
     try:
         with Image.open(os.path.join(file_path, big_pic), "r") as bp:
@@ -56,13 +63,12 @@ if __name__ == "__main__":
     # the absolute path to where the script is being run.
 
     # convert the given images to JPEG before turning them into thumbnails
-    file_root = os.path.join(root, sys.argv[1])
+    # file_root = os.path.join(root, sys.argv[1])
     # Uncomment the following if giving the aboslute path to the files
-    # file_root = sys.argv[1]
+    file_root = sys.argv[1]
     for subdir, dirs, files in os.walk(file_root):
         for file in files:
-            with Image.open(os.path.join(file_root, file), "r") as bp:
-                convert_image(file_root, file)
+            convert_image(file_root, file)
 
     # Convert the converted images to thumbnails
     for subdir, dirs, files in os.walk(file_root):
