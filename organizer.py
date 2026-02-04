@@ -88,16 +88,33 @@ def bills_organizer(path_to_spreadsheet):
         "Transaction Category",
     ] = "INCOME"
 
-    alphabetized_csv = new_csv.sort_values(
+    # Sort the spreadsheet
+    sorted_csv = new_csv.sort_values(
         by=[
             "Transaction Category",
             "Effective Date",
         ]
     )
 
-    print("Placed here: {0}".format(path_to_spreadsheet))
-    print(alphabetized_csv)
-    alphabetized_csv.to_csv("test.csv", index=False)
+    grocery_total = sorted_csv.loc[
+        sorted_csv["Transaction Category"].str.contains("Groceries"), "Amount"
+    ].sum()
+
+    recurring_total = sorted_csv.loc[
+        sorted_csv["Transaction Category"].str.contains("Recurring"), "Amount"
+    ].sum()
+
+    expense_total = sorted_csv.loc[
+        sorted_csv["Transaction Category"].str.contains("Expenses"), "Amount"
+    ].sum()
+
+    print("Total expenses:", expense_total)
+    print("Grocery Total", grocery_total)
+    print("Recurring Total", recurring_total)
+
+    # print("Placed here: {0}".format(path_to_spreadsheet))
+    # print(sorted_csv)
+    sorted_csv.to_csv("test.csv", index=False)
     # alphabetized_csv.to_csv("{0}".format(path_to_spreadsheet), index=False)
     return 0
 
