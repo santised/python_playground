@@ -8,37 +8,97 @@ keep_columns = [
     "Transaction Category",
 ]
 
+grocery_search = [
+    "WHOLEFDS",
+    "NATURAL GROCERS",
+    "COSTCO",
+    "KING SOOPERS",
+]
+
+reccurring_expense_search = [
+    "LONGMONT CLIMBING COL",
+    "CITI",
+    "CHASE",
+    "USAA CREDIT CARD",
+    "BOULDER COUNTY BOMBER",
+    "THE NEST",
+    "Spotify",
+    "Netflix",
+    "T-MOBILE",
+    "GEICO",
+    "Airborne",
+    "InstaMed",
+    "XCEL",
+    "CITYOFLONGMONT",  # Utilities
+    "CU PARKING REMOTE",  # Utilities
+]
+
+payroll_search = [
+    "GUSTO",
+    "PAYROLL",
+]
+
+
 exclude_labels = ["Transfers"]
 
 
 def bills_organizer(path_to_spreadsheet):
     truncated_path = path_to_spreadsheet.split("/")[-1]
     print(f"\nReading from {truncated_path}\n")
-    # Insanely powerful ability to both read a csv, keep specific columns, and sort alphabetically
-    # from within one function call.
+    # Read a csv, keep specific columns
     new_csv = pd.read_csv(path_to_spreadsheet, usecols=keep_columns)
 
-    updated_csv = new_csv[
+    # Return a copy of the csv that removes the rows from the column "Designator" that match the labels within
+    # "exclude_labels". Note that this is in fact making a csv that match the labels of the list, but inverts the
+    # matching behavior: ~
+    new_csv = new_csv[
         ~new_csv["Transaction Category"].str.contains("|".join(exclude_labels))
     ]
 
-    alphabetized_csv = updated_csv.sort_values(
+    # Change values to positive values
+    new_csv["Amount"] = new_csv["Amount"].abs()
+
+    # The date column is just text and so sorting it means 1/27 comes before 1/3, change to date time.
+    new_csv["Effective Date"] = pd.to_datetime(new_csv["Effective Date"])
+
+    # Now chnage date time to just be month/day
+    new_csv["Effective Date"] = new_csv["Effective Date"].dt.strftime("%m/%d")
+
+    # Blanket reset a column to be "other expenses"
+    new_csv.loc[new_csv["Description"].notna(), "Transaction Category"] = "Expenses"
+
+    # Search for groceries and apply that label
+    grocery_pattern = "|".join(grocery_search)
+    new_csv.loc[
+        new_csv["Description"].str.contains(grocery_pattern, case=False, na=False),
+        "Transaction Category",
+    ] = "Groceries"
+
+    # Search for recurring expenses and apply the correct label
+    recurring_pattern = "|".join(reccurring_expense_search)
+    new_csv.loc[
+        new_csv["Description"].str.contains(recurring_pattern, case=False, na=False),
+        "Transaction Category",
+    ] = "Recurring"
+
+    # Search for incom
+    payroll_pattern = "|".join(payroll_search)
+    new_csv.loc[
+        new_csv["Description"].str.contains(payroll_pattern, case=False, na=False),
+        "Transaction Category",
+    ] = "INCOME"
+
+    alphabetized_csv = new_csv.sort_values(
         by=[
             "Transaction Category",
             "Effective Date",
         ]
     )
 
-    # Return a copy of the csv that removes the rows from the column "Designator" that match the labels within
-    # "exclude_labels". Note that this is in fact making a csv that match the labels of the list, but inverts the
-    # matching behavior: ~
-    # updated_csv = csv_pd[~csv_pd["Designator"].str.contains("|".join(exclude_labels))]
-
-    # alphabetized_csv = new_csv.sort_values("Designator")
-
     print("Placed here: {0}".format(path_to_spreadsheet))
     print(alphabetized_csv)
-    alphabetized_csv.to_csv("{0}".format(path_to_spreadsheet), index=False)
+    alphabetized_csv.to_csv("test.csv", index=False)
+    # alphabetized_csv.to_csv("{0}".format(path_to_spreadsheet), index=False)
     return 0
 
 
