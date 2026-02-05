@@ -43,6 +43,7 @@ coffee_expense_label = [
     "Brewing Market",
     "Dutch Bros",
     "Ozo Coffee",
+    "Cavegirl",
 ]
 
 payroll_search = [
