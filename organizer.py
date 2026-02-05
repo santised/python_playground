@@ -103,7 +103,7 @@ def bills_organizer(path_to_spreadsheet):
     coffee_pattern = "|".join(coffee_expense_label)
     new_csv.loc[
         new_csv["Description"].str.contains(coffee_pattern, case=False, na=False),
-        "Description",
+        "Sub-category",
     ] = "Coffee"
 
     dog_pattern = "|".join(dog_food_expense_label)
@@ -123,7 +123,7 @@ def bills_organizer(path_to_spreadsheet):
     ] = "Parking"
 
     new_csv.loc[
-        new_csv["Description"].str.contains("GUSTO", case=False, na=False),
+        new_csv["Description"].str.contains("Gusto", case=False, na=False),
         "Sub-category",
     ] = "Gusto"
 
@@ -152,19 +152,19 @@ def bills_organizer(path_to_spreadsheet):
     ].sum()
 
     parking_total = sorted_csv.loc[
-        sorted_csv["Description"].str.contains("Parking"), "Amount"
+        sorted_csv["Sub-category"].str.contains("Parking"), "Amount"
     ].sum()
 
     dog_food_total = sorted_csv.loc[
-        sorted_csv["Description"].str.contains("Dog Food"), "Amount"
+        sorted_csv["Sub-category"].str.contains("Dog Food"), "Amount"
     ].sum()
 
     coffee_total = sorted_csv.loc[
-        sorted_csv["Description"].str.contains("Coffee"), "Amount"
+        sorted_csv["Sub-category"].str.contains("Coffee"), "Amount"
     ].sum()
 
     gusto_income_total = sorted_csv.loc[
-        sorted_csv["Description"].str.contains("GUSTO"), "Amount"
+        sorted_csv["Sub-category"].str.contains("Gusto"), "Amount"
     ].sum()
 
     print("Total expenses:", expense_total)
