@@ -14,7 +14,7 @@ grocery_search = [
     "COSTCO",
     "KING SOOPERS",
     "Murdochs",  # dog food
-    "Chuckand",  # dog food
+    "CHUCK",  # dog food
 ]
 
 reccurring_expense_search = [
@@ -36,8 +36,9 @@ reccurring_expense_search = [
     "CU PARKING REMOTE",  # Utilities
 ]
 
-secondary_expense_label = [
-    "Flagstaff",
+dog_food_expense_label = ["CHUCK", "MURDOCHS"]
+
+coffee_expense_label = [
     "Ziggis",
     "Brewing Market",
     "Dutch Bros",
@@ -99,6 +100,33 @@ def bills_organizer(path_to_spreadsheet):
         "Transaction Category",
     ] = "INCOME"
 
+    coffee_pattern = "|".join(coffee_expense_label)
+    new_csv.loc[
+        new_csv["Description"].str.contains(coffee_pattern, case=False, na=False),
+        "Description",
+    ] = "Coffee"
+
+    dog_pattern = "|".join(dog_food_expense_label)
+    new_csv.loc[
+        new_csv["Description"].str.contains(dog_pattern, case=False, na=False),
+        "Sub-category",
+    ] = "Dog Food"
+
+    new_csv.loc[
+        new_csv["Description"].str.contains("Flagstaff", case=False, na=False),
+        "Sub-category",
+    ] = "Flagstaff"
+
+    new_csv.loc[
+        new_csv["Description"].str.contains("CU Parking", case=False, na=False),
+        "Sub-category",
+    ] = "Parking"
+
+    new_csv.loc[
+        new_csv["Description"].str.contains("GUSTO", case=False, na=False),
+        "Sub-category",
+    ] = "Gusto"
+
     # Sort the spreadsheet
     sorted_csv = new_csv.sort_values(
         by=[
@@ -123,10 +151,30 @@ def bills_organizer(path_to_spreadsheet):
         sorted_csv["Transaction Category"].str.contains("INCOME"), "Amount"
     ].sum()
 
+    parking_total = sorted_csv.loc[
+        sorted_csv["Description"].str.contains("Parking"), "Amount"
+    ].sum()
+
+    dog_food_total = sorted_csv.loc[
+        sorted_csv["Description"].str.contains("Dog Food"), "Amount"
+    ].sum()
+
+    coffee_total = sorted_csv.loc[
+        sorted_csv["Description"].str.contains("Coffee"), "Amount"
+    ].sum()
+
+    gusto_income_total = sorted_csv.loc[
+        sorted_csv["Description"].str.contains("GUSTO"), "Amount"
+    ].sum()
+
     print("Total expenses:", expense_total)
     print("Grocery Total: ", grocery_total)
     print("Recurring Total: ", recurring_total)
     print("Income Total: ", income_total)
+    print("Parking Total: ", parking_total)
+    print("Dog Food Total: ", dog_food_total)
+    print("Coffee Total: ", coffee_total)
+    print("GUSTO Income Total: ", gusto_income_total)
     print(
         "Left after expenses: ",
         (income_total + 4332.47) - (grocery_total + expense_total + recurring_total),
