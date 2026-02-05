@@ -13,6 +13,8 @@ grocery_search = [
     "NATURAL GROCERS",
     "COSTCO",
     "KING SOOPERS",
+    "Murdochs",  # dog food
+    "Chuckand",  # dog food
 ]
 
 reccurring_expense_search = [
@@ -30,7 +32,16 @@ reccurring_expense_search = [
     "InstaMed",
     "XCEL",
     "CITYOFLONGMONT",  # Utilities
+    "Nextlight",
     "CU PARKING REMOTE",  # Utilities
+]
+
+secondary_expense_label = [
+    "Flagstaff",
+    "Ziggis",
+    "Brewing Market",
+    "Dutch Bros",
+    "Ozo Coffee",
 ]
 
 payroll_search = [
