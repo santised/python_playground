@@ -81,7 +81,7 @@ def bills_organizer(path_to_spreadsheet):
         "Transaction Category",
     ] = "Recurring"
 
-    # Search for incom
+    # Search for income
     payroll_pattern = "|".join(payroll_search)
     new_csv.loc[
         new_csv["Description"].str.contains(payroll_pattern, case=False, na=False),
@@ -108,13 +108,22 @@ def bills_organizer(path_to_spreadsheet):
         sorted_csv["Transaction Category"].str.contains("Expenses"), "Amount"
     ].sum()
 
+    income_total = sorted_csv.loc[
+        sorted_csv["Transaction Category"].str.contains("INCOME"), "Amount"
+    ].sum()
+
     print("Total expenses:", expense_total)
-    print("Grocery Total", grocery_total)
-    print("Recurring Total", recurring_total)
+    print("Grocery Total: ", grocery_total)
+    print("Recurring Total: ", recurring_total)
+    print("Income Total: ", income_total)
+    print(
+        "Left after expenses: ",
+        (income_total + 4332.47) - (grocery_total + expense_total + recurring_total),
+    )
 
     # print("Placed here: {0}".format(path_to_spreadsheet))
     # print(sorted_csv)
-    sorted_csv.to_csv("test.csv", index=False)
+    sorted_csv.to_csv("expense.csv", index=False)
     # alphabetized_csv.to_csv("{0}".format(path_to_spreadsheet), index=False)
     return 0
 
