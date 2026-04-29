@@ -52,7 +52,7 @@ payroll_search = [
 ]
 
 
-exclude_labels = ["Transfers"]
+exclude_labels = ["Transfers", "Share"]
 
 
 def bills_organizer(path_to_spreadsheet):
@@ -67,6 +67,8 @@ def bills_organizer(path_to_spreadsheet):
     new_csv = new_csv[
         ~new_csv["Transaction Category"].str.contains("|".join(exclude_labels))
     ]
+
+    new_csv = new_csv[~new_csv["Description"].str.contains("|".join(exclude_labels))]
 
     # Change values to positive values
     new_csv["Amount"] = new_csv["Amount"].abs()

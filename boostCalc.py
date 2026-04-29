@@ -17,11 +17,17 @@ def iref_calc(vout):
     print(current_resistor, "Ohm Needed")
 
 
-if __name__ == "__main__":
-    table = []
-    for i in range(1000, 5000, 100):
-        temp_list = boost_calc(i)
-        table.append(temp_list)
+def dc_dc_resistor():
+    rtwo = 2200 * ((5 / 0.8) - 1)
+    print(rtwo)
 
-    print(tabulate(table, headers=["Resistor One", "Resistor Two"]))
-    iref_calc(actual_VOUT(18000, 2100))
+
+if __name__ == "__main__":
+    dc_dc_resistor()
+    # table = []
+    # for i in range(1000, 5000, 100):
+    #    temp_list = boost_calc(i)
+    #    table.append(temp_list)
+
+    # print(tabulate(table, headers=["Resistor One", "Resistor Two"]))
+    # iref_calc(actual_VOUT(18000, 2100))
