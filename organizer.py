@@ -51,6 +51,7 @@ class expense_organizer:
             "Dutch Bros",
             "Ozo Coffee",
             "Cavegirl",
+            "Babettes",
         ]
 
         self.payroll_search = [
@@ -59,7 +60,16 @@ class expense_organizer:
         ]
 
         self.exclude_labels = ["Transfers"]
-        self.reduced_csv = self.format_new_csv()
+
+        # Only a few of the columns are relevant and so they're reduced here and
+        # certain columns are formatted; the date field is set to a proper date time field
+        # for better sorting, and expenses are set to positive values.
+        # This is done so that I can copy and paste into another spreadsheet.
+        # FIX: Can I finalize the format so that I can copy the entire csv into the other?
+        # Can I upload a csv directly into Proton?
+        self.organized_csv = self.format_new_csv()
+        self.sorted_csv = self.bills_sorting()
+        sum_category_totals(self.sorted_csv)
 
     def format_new_csv(self):
         new_csv = pd.read_csv(self.spreadsheet, usecols=self.keep_columns)
@@ -71,7 +81,7 @@ class expense_organizer:
             ~new_csv["Transaction Category"].str.contains("|".join(self.exclude_labels))
         ]
 
-        # Change values to positive values
+        # Change expense values to positive values to be able to copy it directly into another csv
         new_csv["Amount"] = new_csv["Amount"].abs()
 
         # The date column is just text and so sorting it means 1/27 comes before 1/3, change to date time.
@@ -80,23 +90,28 @@ class expense_organizer:
         # Now chnage date time to just be month/day
         new_csv["Effective Date"] = new_csv["Effective Date"].dt.strftime("%m/%d")
 
+        # Return the formatted csv
         return new_csv
 
-    def bills_organizer(self):
+    def bills_sorting(self):
         # Blanket reset a column to be "other expenses"
-        new_csv.loc[new_csv["Description"].notna(), "Transaction Category"] = "Expenses"
+        self.organized_csv.loc[
+            self.organized_csv["Description"].notna(), "Transaction Category"
+        ] = "Expenses"
 
         # Search for groceries and apply that label
         grocery_pattern = "|".join(self.grocery_search)
-        new_csv.loc[
-            new_csv["Description"].str.contains(grocery_pattern, case=False, na=False),
+        self.organized_csv.loc[
+            self.organized_csv["Description"].str.contains(
+                grocery_pattern, case=False, na=False
+            ),
             "Transaction Category",
         ] = "Groceries"
 
         # Search for recurring expenses and apply the correct label
         recurring_pattern = "|".join(self.reccurring_expense_search)
-        new_csv.loc[
-            new_csv["Description"].str.contains(
+        self.organized_csv.loc[
+            self.organized_csv["Description"].str.contains(
                 recurring_pattern, case=False, na=False
             ),
             "Transaction Category",
@@ -104,52 +119,67 @@ class expense_organizer:
 
         # Search for income
         payroll_pattern = "|".join(self.payroll_search)
-        new_csv.loc[
-            new_csv["Description"].str.contains(payroll_pattern, case=False, na=False),
+        self.organized_csv.loc[
+            self.organized_csv["Description"].str.contains(
+                payroll_pattern, case=False, na=False
+            ),
             "Transaction Category",
         ] = "INCOME"
 
         coffee_pattern = "|".join(self.coffee_expense_label)
-        new_csv.loc[
-            new_csv["Description"].str.contains(coffee_pattern, case=False, na=False),
+        self.organized_csv.loc[
+            self.organized_csv["Description"].str.contains(
+                coffee_pattern, case=False, na=False
+            ),
             "Sub-category",
         ] = "Coffee"
 
         dog_pattern = "|".join(self.dog_food_expense_label)
-        new_csv.loc[
-            new_csv["Description"].str.contains(dog_pattern, case=False, na=False),
+        self.organized_csv.loc[
+            self.organized_csv["Description"].str.contains(
+                dog_pattern, case=False, na=False
+            ),
             "Sub-category",
         ] = "Dog Food"
 
-        new_csv.loc[
-            new_csv["Description"].str.contains("Flagstaff", case=False, na=False),
+        self.organized_csv.loc[
+            self.organized_csv["Description"].str.contains(
+                "Flagstaff", case=False, na=False
+            ),
             "Sub-category",
         ] = "Flagstaff"
 
-        new_csv.loc[
-            new_csv["Description"].str.contains("CU Parking", case=False, na=False),
+        self.organized_csv.loc[
+            self.organized_csv["Description"].str.contains(
+                "CU Parking", case=False, na=False
+            ),
             "Sub-category",
         ] = "Parking"
 
-        new_csv.loc[
-            new_csv["Description"].str.contains("Gusto", case=False, na=False),
+        self.organized_csv.loc[
+            self.organized_csv["Description"].str.contains(
+                "Gusto", case=False, na=False
+            ),
             "Sub-category",
         ] = "Gusto"
 
         # Sort the spreadsheet
-        sorted_csv = new_csv.sort_values(
+        return self.organized_csv.sort_values(
             by=[
                 "Transaction Category",
                 "Effective Date",
             ]
         )
 
+    def sum_category_totals(self, sorted_csv):
         grocery_total = sorted_csv.loc[
-            sorted_csv["Transaction Category"].str.contains("Groceries"), "Amount"
+            sorted_csv["Transaction Category"].str.contains("Groceries"),
+            "Amount",
         ].sum()
 
         recurring_total = sorted_csv.loc[
-            sorted_csv["Transaction Category"].str.contains("Recurring"), "Amount"
+            sorted_csv["Transaction Category"].str.contains("Recurring"),
+            "Amount",
         ].sum()
 
         expense_total = sorted_csv.loc[
