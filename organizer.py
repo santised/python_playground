@@ -1,5 +1,6 @@
 import pandas as pd
 import sys
+import matplotlib as plot
 
 
 class expense_organizer:
@@ -8,6 +9,8 @@ class expense_organizer:
         self.spreadsheet = truncated_path
         print(f"\nReading from {truncated_path}\n")
 
+        # All class arrays are small pattern matches..
+        # These are the columns of interest
         self.keep_columns = [
             "Effective Date",
             "Amount",
@@ -15,15 +18,18 @@ class expense_organizer:
             "Transaction Category",
         ]
 
+        # Grocery stores
         self.grocery_search = [
             "WHOLEFDS",
             "NATURAL GROCERS",
             "COSTCO",
+            "SAFEWAY",
             "KING SOOPERS",
             "Murdochs",  # dog food
             "CHUCK",  # dog food
         ]
 
+        # These are recurring expenses like utlities and subscriptions
         self.reccurring_expense_search = [
             "LONGMONT CLIMBING COL",
             "CITI",
@@ -43,9 +49,10 @@ class expense_organizer:
             "CU PARKING REMOTE",  # Utilities
         ]
 
-        self.dog_food_expense_label = ["CHUCK", "MURDOCHS"]
+        # This is used to sub-categorize expenses
+        self.dog_food_sub_category = ["CHUCK", "MURDOCHS"]
 
-        self.coffee_expense_label = [
+        self.coffee_sub_category = [
             "Ziggis",
             "Brewing Market",
             "Dutch Bros",
@@ -54,15 +61,16 @@ class expense_organizer:
             "Babettes",
         ]
 
+        # Income
         self.payroll_search = [
             "GUSTO",
             "PAYROLL",
         ]
 
-        self.exclude_labels = ["Transfers"]
+        self.items_to_exclude = ["Transfers"]
 
         # Only a few of the columns are relevant and so they're reduced here and
-        # certain columns are formatted; the date field is set to a proper date time field
+        # certain columns are formatted; the date field is set to a proper date-time field
         # for better sorting, and expenses are set to positive values.
         # This is done so that I can copy and paste into another spreadsheet.
         # FIX: Can I finalize the format so that I can copy the entire csv into the other?
@@ -74,10 +82,12 @@ class expense_organizer:
         new_csv = pd.read_csv(self.spreadsheet, usecols=self.keep_columns)
 
         # Return a copy of the csv that removes the rows from the column "Designator" that match the labels within
-        # "exclude_labels". Note that this is in fact making a csv that match the labels of the list, but inverts the
+        # "items_to_exclude". Note that this is in fact making a csv that match the labels of the list, but inverts the
         # matching behavior: ~
         new_csv = new_csv[
-            ~new_csv["Transaction Category"].str.contains("|".join(self.exclude_labels))
+            ~new_csv["Transaction Category"].str.contains(
+                "|".join(self.items_to_exclude)
+            )
         ]
 
         # Change expense values to positive values to be able to copy it directly into another csv
@@ -125,7 +135,7 @@ class expense_organizer:
             "Transaction Category",
         ] = "INCOME"
 
-        coffee_pattern = "|".join(self.coffee_expense_label)
+        coffee_pattern = "|".join(self.coffee_sub_category)
         self.organized_csv.loc[
             self.organized_csv["Description"].str.contains(
                 coffee_pattern, case=False, na=False
@@ -133,7 +143,7 @@ class expense_organizer:
             "Sub-category",
         ] = "Coffee"
 
-        dog_pattern = "|".join(self.dog_food_expense_label)
+        dog_pattern = "|".join(self.dog_food_sub_category)
         self.organized_csv.loc[
             self.organized_csv["Description"].str.contains(
                 dog_pattern, case=False, na=False
