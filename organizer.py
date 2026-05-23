@@ -59,16 +59,16 @@ class expense_organizer:
         ]
 
         self.exclude_labels = ["Transfers"]
+        self.reduced_csv = self.format_new_csv()
 
-    def bills_organizer(self):
-        # Read a csv, keep specific columns
-        new_csv = pd.read_csv(self.spreadsheet, usecols=keep_columns)
+    def format_new_csv(self):
+        new_csv = pd.read_csv(self.spreadsheet, usecols=self.keep_columns)
 
         # Return a copy of the csv that removes the rows from the column "Designator" that match the labels within
         # "exclude_labels". Note that this is in fact making a csv that match the labels of the list, but inverts the
         # matching behavior: ~
         new_csv = new_csv[
-            ~new_csv["Transaction Category"].str.contains("|".join(exclude_labels))
+            ~new_csv["Transaction Category"].str.contains("|".join(self.exclude_labels))
         ]
 
         # Change values to positive values
@@ -80,18 +80,21 @@ class expense_organizer:
         # Now chnage date time to just be month/day
         new_csv["Effective Date"] = new_csv["Effective Date"].dt.strftime("%m/%d")
 
+        return new_csv
+
+    def bills_organizer(self):
         # Blanket reset a column to be "other expenses"
         new_csv.loc[new_csv["Description"].notna(), "Transaction Category"] = "Expenses"
 
         # Search for groceries and apply that label
-        grocery_pattern = "|".join(grocery_search)
+        grocery_pattern = "|".join(self.grocery_search)
         new_csv.loc[
             new_csv["Description"].str.contains(grocery_pattern, case=False, na=False),
             "Transaction Category",
         ] = "Groceries"
 
         # Search for recurring expenses and apply the correct label
-        recurring_pattern = "|".join(reccurring_expense_search)
+        recurring_pattern = "|".join(self.reccurring_expense_search)
         new_csv.loc[
             new_csv["Description"].str.contains(
                 recurring_pattern, case=False, na=False
@@ -100,19 +103,19 @@ class expense_organizer:
         ] = "Recurring"
 
         # Search for income
-        payroll_pattern = "|".join(payroll_search)
+        payroll_pattern = "|".join(self.payroll_search)
         new_csv.loc[
             new_csv["Description"].str.contains(payroll_pattern, case=False, na=False),
             "Transaction Category",
         ] = "INCOME"
 
-        coffee_pattern = "|".join(coffee_expense_label)
+        coffee_pattern = "|".join(self.coffee_expense_label)
         new_csv.loc[
             new_csv["Description"].str.contains(coffee_pattern, case=False, na=False),
             "Sub-category",
         ] = "Coffee"
 
-        dog_pattern = "|".join(dog_food_expense_label)
+        dog_pattern = "|".join(self.dog_food_expense_label)
         new_csv.loc[
             new_csv["Description"].str.contains(dog_pattern, case=False, na=False),
             "Sub-category",
