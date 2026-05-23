@@ -69,7 +69,6 @@ class expense_organizer:
         # Can I upload a csv directly into Proton?
         self.organized_csv = self.format_new_csv()
         self.sorted_csv = self.bills_sorting()
-        sum_category_totals(self.sorted_csv)
 
     def format_new_csv(self):
         new_csv = pd.read_csv(self.spreadsheet, usecols=self.keep_columns)
@@ -222,9 +221,11 @@ class expense_organizer:
 
         # print("Placed here: {0}".format(path_to_spreadsheet))
         # print(sorted_csv)
-        sorted_csv.to_csv("expense.csv", index=False)
         # alphabetized_csv.to_csv("{0}".format(path_to_spreadsheet), index=False)
         return 0
+
+    def export_csv(self):
+        self.sorted_csv.to_csv("expense.csv", index=False)
 
 
 #
@@ -237,4 +238,6 @@ class expense_organizer:
 #
 if __name__ == "__main__":
     path_to_spreadsheet = sys.argv[1]
-    bills_organizer(path_to_spreadsheet)
+    bo = expense_organizer(path_to_spreadsheet)
+    bo.sum_category_totals(bo.sorted_csv)
+    bo.export_csv()
