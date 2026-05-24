@@ -238,15 +238,12 @@ class expense_organizer:
         self.finalized_csv.to_csv("expense.csv", index=False)
 
     def graph_expenses(self):
-        plotLib.plot(
-            self.finalized_csv[self.organized_csv["Effective Date"].tolist()],
-            self.finalized_csv.loc[
-                self.organized_csv["Transaction Category"].str.contains("Expenses"),
-                "Amount",
-            ],
-        )
-        plotLib.xLabel("Date")
-        plotLib.yLabel("Dollar amount")
+        expenses = self.finalized_csv[
+            self.finalized_csv["Transaction Category"] == "Expenses"
+        ]
+        plotLib.plot(expenses["Effective Date"], expenses["Amount"])
+        plotLib.xlabel("Date")
+        plotLib.ylabel("Dollar amount")
         plotLib.show()
 
 
