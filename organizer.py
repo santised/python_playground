@@ -1,5 +1,8 @@
 import pandas as pd
 import sys
+import matplotlib
+
+matplotlib.use("qt5Agg")
 import matplotlib.pyplot as plotLib
 
 
@@ -77,6 +80,7 @@ class expense_organizer:
         # Can I upload a csv directly into Proton?
         self.organized_csv = self.format_new_csv()
         self.finalized_csv = self.bills_sorting()
+        self.prepared_csv = self.prepare_csv_for_graphs()
 
     def format_new_csv(self):
         new_csv = pd.read_csv(self.spreadsheet, usecols=self.keep_columns)
@@ -101,6 +105,25 @@ class expense_organizer:
 
         # Return the formatted csv
         return new_csv
+
+    def prepare_csv_for_graphs(self):
+        income_total = self.finalized_csv.loc[
+            self.finalized_csv["Transaction Category"].str.contains("INCOME"), "Amount"
+        ].sum()
+
+        # finalized_csv is sorted by Transaction categories i.e. Groceries, Income, Expenses and sorts each Category
+        # by date. I only want to graph by date.
+        expenses = self.finalized_csv[
+            self.finalized_csv["Transaction Category"] != "INCOME"
+        ].sort_values("Effective Date")
+
+        # cumsum produces a running total of "Amount"
+        expenses["Remaining"] = income_total - expenses["Amount"].cumsum()
+
+        #  collapses the "remaining" values at a given date and mi
+        daily_min = expenses.groupby("Effective Date")["Remaining"].min().reset_index()
+
+        return daily_min
 
     def bills_sorting(self):
         # Blanket reset a column to be "other expenses"
@@ -238,25 +261,11 @@ class expense_organizer:
         self.finalized_csv.to_csv("expense.csv", index=False)
 
     def graph_expenses(self):
-        income_total = self.finalized_csv.loc[
-            self.finalized_csv["Transaction Category"].str.contains("INCOME"), "Amount"
-        ].sum()
+        bars = plotLib.bar(
+            self.prepared_csv["Effective Date"], self.prepared_csv["Remaining"]
+        )
 
-        # finalized_csv is sorted by Transaction categories i.e. Groceries, Income, Expenses and sorts each Category
-        # by date. I only want to graph by date.
-        expenses = self.finalized_csv[
-            self.finalized_csv["Transaction Category"] != "INCOME"
-        ].sort_values("Effective Date")
-
-        # cumsum produces a running total of "Amount"
-        expenses["Remaining"] = income_total - expenses["Amount"].cumsum()
-
-        #  collapses the "remaining" values at a given date and mi
-        daily_min = expenses.groupby("Effective Date")["Remaining"].min().reset_index()
-
-        bars = plotLib.bar(daily_min["Effective Date"], daily_min["Remaining"])
-
-        for bar, value in zip(bars, daily_min["Remaining"]):
+        for bar, value in zip(bars, self.prepared_csv["Remaining"]):
             plotLib.text(
                 bar.get_x() + bar.get_width() / 2,
                 bar.get_height(),
