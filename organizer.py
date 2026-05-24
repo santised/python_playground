@@ -238,12 +238,32 @@ class expense_organizer:
         self.finalized_csv.to_csv("expense.csv", index=False)
 
     def graph_expenses(self):
+        income_total = self.finalized_csv.loc[
+            self.finalized_csv["Transaction Category"].str.contains("INCOME"), "Amount"
+        ].sum()
+
+        # finalized_csv is sorted by Transaction categories i.e. Groceries, Income, Expenses and sorts each Category
+        # by date. I only want to graph by date.
         expenses = self.finalized_csv[
-            self.finalized_csv["Transaction Category"] == "Expenses"
-        ]
-        plotLib.plot(expenses["Effective Date"], expenses["Amount"])
+            self.finalized_csv["Transaction Category"] != "INCOME"
+        ].sort_values("Effective Date")
+
+        expenses["Remaining"] = income_total - expenses["Amount"].cumsum()
+
+        daily_min = expenses.groupby("Effective Date")["Remaining"].min().reset_index()
+
+        bars = plotLib.bar(daily_min["Effective Date"], daily_min["Remaining"])
+
+        for bar, value in zip(bars, daily_min["Remaining"]):
+            plotLib.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"${value:.2f}",
+                ha="center",
+                va="bottom",
+            )
         plotLib.xlabel("Date")
-        plotLib.ylabel("Dollar amount")
+        plotLib.ylabel("Money Remaining")
         plotLib.show()
 
 
