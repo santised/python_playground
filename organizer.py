@@ -1,6 +1,6 @@
 import pandas as pd
 import sys
-import matplotlib as plot
+import matplotlib.pyplot as plotLib
 
 
 class expense_organizer:
@@ -76,7 +76,7 @@ class expense_organizer:
         # FIX: Can I finalize the format so that I can copy the entire csv into the other?
         # Can I upload a csv directly into Proton?
         self.organized_csv = self.format_new_csv()
-        self.sorted_csv = self.bills_sorting()
+        self.finalized_csv = self.bills_sorting()
 
     def format_new_csv(self):
         new_csv = pd.read_csv(self.spreadsheet, usecols=self.keep_columns)
@@ -235,7 +235,19 @@ class expense_organizer:
         return 0
 
     def export_csv(self):
-        self.sorted_csv.to_csv("expense.csv", index=False)
+        self.finalized_csv.to_csv("expense.csv", index=False)
+
+    def graph_expenses(self):
+        plotLib.plot(
+            self.finalized_csv[self.organized_csv["Effective Date"].tolist()],
+            self.finalized_csv.loc[
+                self.organized_csv["Transaction Category"].str.contains("Expenses"),
+                "Amount",
+            ],
+        )
+        plotLib.xLabel("Date")
+        plotLib.yLabel("Dollar amount")
+        plotLib.show()
 
 
 #
@@ -249,5 +261,6 @@ class expense_organizer:
 if __name__ == "__main__":
     path_to_spreadsheet = sys.argv[1]
     bo = expense_organizer(path_to_spreadsheet)
-    bo.sum_category_totals(bo.sorted_csv)
+    bo.sum_category_totals(bo.finalized_csv)
     bo.export_csv()
+    bo.graph_expenses()
