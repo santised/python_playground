@@ -248,8 +248,10 @@ class expense_organizer:
             self.finalized_csv["Transaction Category"] != "INCOME"
         ].sort_values("Effective Date")
 
+        # cumsum produces a running total of "Amount"
         expenses["Remaining"] = income_total - expenses["Amount"].cumsum()
 
+        #  collapses the "remaining" values at a given date and mi
         daily_min = expenses.groupby("Effective Date")["Remaining"].min().reset_index()
 
         bars = plotLib.bar(daily_min["Effective Date"], daily_min["Remaining"])
@@ -264,6 +266,21 @@ class expense_organizer:
             )
         plotLib.xlabel("Date")
         plotLib.ylabel("Money Remaining")
+        plotLib.show()
+
+    def stack_graphs(self):
+        expenses = self.finalized_csv[
+            self.finalized_csv["Transaction Category"] != "INCOME"
+        ].sort_values("Effective Date")
+
+        pivot = (
+            expenses.groupby(["Effective Date", "Transaction Category"])["Amount"]
+            .sum()
+            .unstack(fill_value=0)
+        )
+        pivot.plot(kind="bar", stacked=True)
+        plotLib.xlabel("Date")
+        plotLib.ylabel("Amount")
         plotLib.show()
 
 
