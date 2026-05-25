@@ -195,6 +195,19 @@ class expense_organizer:
             "Sub-category",
         ] = "Gusto"
 
+        # This information is in a different account
+        # Since it's the same each month just add it manually
+        add_aimee_income = {
+            "Effective Date": pd.Timestamp("5/01"),
+            "Description": "Income from UC Boulder",
+            "Amount": 4031,
+            "Transaction Category": "INCOME",
+        }
+
+        self.organized_csv = pd.concat(
+            [self.organized_csv, pd.DataFrame([add_aimee_income])], ignore_index=True
+        )
+
         # Sort the spreadsheet
         return self.organized_csv.sort_values(
             by=[
@@ -260,7 +273,7 @@ class expense_organizer:
     def export_csv(self):
         self.finalized_csv.to_csv("expense.csv", index=False)
 
-    def graph_expenses(self):
+    def graph_expense_over_time(self):
         bars = plotLib.bar(
             self.prepared_csv["Effective Date"], self.prepared_csv["Remaining"]
         )
@@ -277,9 +290,24 @@ class expense_organizer:
         plotLib.ylabel("Money Remaining")
         plotLib.show()
 
-    def stack_graphs(self):
+    def graph_groceries(self):
         expenses = self.finalized_csv[
-            self.finalized_csv["Transaction Category"] != "INCOME"
+            self.finalized_csv["Transaction Category"] == "Groceries"
+        ].sort_values("Effective Date")
+
+        pivot = (
+            expenses.groupby(["Effective Date", "Transaction Category"])["Amount"]
+            .sum()
+            .unstack(fill_value=0)
+        )
+        pivot.plot(kind="bar", stacked=True)
+        plotLib.xlabel("Date")
+        plotLib.ylabel("Amount")
+        plotLib.show()
+
+    def graph_expenses(self):
+        expenses = self.finalized_csv[
+            self.finalized_csv["Transaction Category"] == "Expenses"
         ].sort_values("Effective Date")
 
         pivot = (
@@ -306,4 +334,6 @@ if __name__ == "__main__":
     bo = expense_organizer(path_to_spreadsheet)
     bo.sum_category_totals(bo.finalized_csv)
     bo.export_csv()
+    bo.graph_expense_over_time()
+    bo.graph_groceries()
     bo.graph_expenses()
