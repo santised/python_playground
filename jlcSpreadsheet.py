@@ -1,7 +1,12 @@
 # SPDX-License-Identifier: MIT
-
+import subprocess
+import argparse
 import pandas as pd
 import sys
+from pathlib import Path
+
+CAM_FILE_TWO_LAYER = "~/SparkFun/SparkFun_Eagle_Settings/cam/sfe-gerb274x-2layer.cam"
+CAM_FILE_FOUR_LAYER = "~/SparkFun/SparkFun_Eagle_Settings/cam/sfe-gerb274x-4layer.cam"
 
 # @brief An array of column labels to compare csv files against.
 keep_columns = [
@@ -67,6 +72,35 @@ def ulp_csv_update(path_to_spreadsheet):
     alphabetized_csv.to_csv("{0}".format(path_to_spreadsheet), index=False)
 
 
+def cam_board(board_file, layers=2):
+    output_dir = str(board_file.parent) + "/"
+
+    if layers == 2:
+        subprocess.run(
+            [
+                "eagle",
+                "-X",
+                "-dCAMJOB",
+                f"-j{CAM_FILE_TWO_LAYER}",
+                f"-o{output_dir}",
+                str(board_file),
+            ]
+        )
+    elif layers == 4:
+        subprocess.run(
+            [
+                "eagle",
+                "-X",
+                "-dCAMJOB",
+                f"-j{CAM_FILE_FOUR_LAYER}",
+                f"-o{output_dir}",
+                str(board_file),
+            ]
+        )
+    else:
+        print("Pick number of layers...")
+
+
 #
 # ███╗   ███╗ █████╗ ██╗███╗   ██╗
 # ████╗ ████║██╔══██╗██║████╗  ██║
@@ -76,12 +110,19 @@ def ulp_csv_update(path_to_spreadsheet):
 # ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
 #
 if __name__ == "__main__":
-    path_to_spreadsheet = sys.argv[1]
-    ulp_csv_update(path_to_spreadsheet)
-    # if sys.argv[1] == "0":
-    #    sparkle_assembly_update(path_to_spreadsheet)
-    # else:
-    #    print("Choose between 0 and 1")
-    #    print("0 = Sparkle BOM")
-    #    print("1 = Eagle JLCPCB ULP BOM and CPL")
-    #    sys.exit(1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", action="store_true", help="Cams the given board file")
+    parser.add_argument("-s", action="store_true", help="Modifies the given csv file")
+    parser.add_argument("directory", help="path to .brd file")
+    args = parser.parse_args()
+
+    product_directory = Path(args.directory)
+
+    if args.c:
+        for subdir in product_directory.iterdir():
+            if subdir.is_dir() and subdir.name == "production":
+                ulp_csv_update(subdir)
+    if args.s:
+        for subdir in product_directory.iterdir():
+            if subdir.is_dir() and subdir.name == "Hardware":
+                cam_board(subdir)
