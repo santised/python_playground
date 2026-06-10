@@ -7,7 +7,8 @@ from pathlib import Path
 
 CAM_FILE_TWO_LAYER = "~/SparkFun/SparkFun_Eagle_Settings/cam/sfe-gerb274x-2layer.cam"
 CAM_FILE_FOUR_LAYER = "~/SparkFun/SparkFun_Eagle_Settings/cam/sfe-gerb274x-4layer.cam"
-
+PATH_FAB_PLUGIN = "/home/amo/.var/app/org.kicad.KiCad/data/kicad/10.0/3rdparty/plugins/"
+FABRICATION_TOOLKIT_MODULE = "com_github_bennymeg_JLC-Plugin-for-KiCad"
 # @brief An array of column labels to compare csv files against.
 keep_columns = [
     "SparkFun Part Number",
@@ -56,8 +57,7 @@ def sparkle_assembly_update(path_to_spreadsheet):
 # @return nothing
 def ulp_csv_update(path_to_spreadsheet):
     # Split by path designators and keep the last split which is the file itself.
-    truncated_path = path_to_spreadsheet.split("/")[-1]
-    print(f"\nReading from {truncated_path}\n")
+    print(f"\nReading from {path_to_spreadsheet}\n")
     # Read in the given cs, can be position or BOM csv.
     csv_pd = pd.read_csv(path_to_spreadsheet)
     # Return a copy of the csv that removes the rows from the column "Designator" that match the labels within
@@ -72,7 +72,7 @@ def ulp_csv_update(path_to_spreadsheet):
     alphabetized_csv.to_csv("{0}".format(path_to_spreadsheet), index=False)
 
 
-def cam_board(board_file, layers=2):
+def cam_board_eagle(board_file, layers=2):
     output_dir = str(board_file.parent) + "/"
 
     if layers == 2:
@@ -101,6 +101,62 @@ def cam_board(board_file, layers=2):
         print("Pick number of layers...")
 
 
+def cam_board_kicad(board_file):
+    output_dir = str(board_file.parent) + "/"
+
+    subprocess.run(
+        [
+            "flatpak",
+            "run",
+            "--command=kicad-cli",
+            "org.kicad.KiCad",
+            "pcb",
+            "export",
+            "gerbers",
+            "--output",
+            output_dir,
+            "--layers",
+            "F.Cu,In1.Cu,In2.Cu,In3.Cu,In4.Cu,B.Cu,F.Paste,B.Paste,F.Silkscreen,B.Silkscreen,F.Mask,B.Mask,Edge.Cuts",
+            str(board_file),
+        ]
+    )
+
+    subprocess.run(
+        [
+            "flatpak",
+            "run",
+            "--command=kicad-cli",
+            "org.kicad.KiCad",
+            "pcb",
+            "export",
+            "drill",
+            "--output",
+            output_dir,
+            str(board_file),
+        ]
+    )
+
+
+def run_fabricate_plugin(board_file):
+    result = subprocess.run(
+        [
+            "flatpak",
+            "run",
+            "--command=bash",
+            "org.kicad.KiCad",
+            "-c",
+            f"cd {PATH_FAB_PLUGIN} && python3 -m {FABRICATION_TOOLKIT_MODULE}.cli -p {str(board_file)}",
+        ]
+    )
+
+    return result.returncode
+
+
+def combine_pg_csv_with_jlc_csv(path_to_spreadsheet):
+    if "data" in path_to_spreadsheet.stem:
+        print("something")
+
+
 #
 # ███╗   ███╗ █████╗ ██╗███╗   ██╗
 # ████╗ ████║██╔══██╗██║████╗  ██║
@@ -113,16 +169,42 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", action="store_true", help="Cams the given board file")
     parser.add_argument("-s", action="store_true", help="Modifies the given csv file")
+    parser.add_argument(
+        "-k", action="store_true", help="Cams the given board using KiCad"
+    )
     parser.add_argument("directory", help="path to .brd file")
     args = parser.parse_args()
 
     product_directory = Path(args.directory)
 
-    if args.c:
-        for subdir in product_directory.iterdir():
-            if subdir.is_dir() and subdir.name == "production":
-                ulp_csv_update(subdir)
     if args.s:
         for subdir in product_directory.iterdir():
             if subdir.is_dir() and subdir.name == "Hardware":
-                cam_board(subdir)
+                print("Found Hardware")
+                for file in subdir.iterdir():
+                    if file.suffix == ".kicad_pcb":
+                        print("Running fabrication plugin.")
+                        result = run_fabricate_plugin(file)
+        if result == 0:
+            print("Checking BOM and positional data")
+            for subdir in product_directory.iterdir():
+                if subdir.is_dir() and subdir.name == "Hardware":
+                    for leaf in subdir.iterdir():
+                        if leaf.is_dir() and leaf.name == "production":
+                            print("Found correct folder")
+                            for file in leaf.iterdir():
+                                if file.stem == "bom" or file.stem == "positions":
+                                    print("Found bom and positions data")
+                                    ulp_csv_update(file)
+
+    if args.c:
+        for subdir in product_directory.iterdir():
+            if subdir.is_dir() and subdir.name == "Hardware":
+                print("Found Hardware")
+                for file in subdir.iterdir():
+                    if file.suffix == ".kicad_pcb":
+                        print("Found KiCad file, outputing CAM")
+                        cam_board_kicad(file)
+                    elif file.suffix == ".kicad_pcb":
+                        print("Found Eagle file, outputing CAM")
+                        cam_board_eagle(file)
