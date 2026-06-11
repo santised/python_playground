@@ -60,7 +60,7 @@ csv_path = "/SparkFun/ContractManufacturingFiles/"
 # @param spreadsheet_file Path to the spreadsheet
 # @return nothing
 def sparkle_assembly_update(spreadsheet_file):
-    output_dir = str(spreadsheet_file.parent.parent) + "/manufacturing/"
+    output_dir = str(spreadsheet_file.parent.parent) + "/Manufacturing/"
     Path(output_dir).mkdir(exist_ok=True)
     print(f"\nReading from {truncated_path}\n")
     # Insanely powerful ability to both read a csv, keep specific columns, and sort alphabetically
@@ -80,7 +80,7 @@ def sparkle_assembly_update(spreadsheet_file):
 # @return nothing
 def ulp_csv_update(spreadsheet_file):
     updated_csv_output = (
-        str(spreadsheet_file.parent.parent) + "/manufacturing/" + spreadsheet_file.name
+        str(spreadsheet_file.parent.parent) + "/Manufacturing/" + spreadsheet_file.name
     )
 
     # Split by path designators and keep the last split which is the file itself.
@@ -96,14 +96,14 @@ def ulp_csv_update(spreadsheet_file):
     # Print it so that we can check it at a glance on the terminal
     print(alphabetized_csv)
 
-    print("Placed here: {0}".format(updated_csv_output))
+    print("Update CSV is here: {0}\n".format(updated_csv_output))
     alphabetized_csv.to_csv(updated_csv_output, index=False)
 
     if spreadsheet_file.stem == "bom":
-        print("Updating bom file")
+        print("Merging BOM and JLCPCB Part Numbers")
         add_jlc_part_numbers_to_csv(spreadsheet_file.parent.parent, updated_csv_output)
     else:
-        print("Skipping this csv.")
+        print("Skipping non-BOM CSV.")
 
 
 def add_jlc_part_numbers_to_csv(csv_directory, updated_csv_file):
@@ -112,10 +112,17 @@ def add_jlc_part_numbers_to_csv(csv_directory, updated_csv_file):
     for file in csv_directory_parent.iterdir():
         if "data" in file.stem:
             pg_admin_file = file
+            break
 
     if pg_admin_file is None:
-        print("Could not find data file in {0}".format(csv_directory_parent))
+        print(
+            "\n-------\nSkipping\nCould not find data file in {0}\n--------\n".format(
+                csv_directory_parent
+            )
+        )
         return
+
+    print("Found Data File")
 
     csv_with_part_number = pd.read_csv(pg_admin_file)
     csv_without_part_numbers = pd.read_csv(updated_csv_file)
@@ -144,11 +151,12 @@ def add_jlc_part_numbers_to_csv(csv_directory, updated_csv_file):
         axis=1,
     )
 
+    print("Done merging files.")
     csv_without_part_numbers.to_csv(updated_csv_file, index=False)
 
 
 def cam_board_eagle(board_file, layers=2):
-    output_dir = str(board_file.parent.parent) + "/manufacturing/"
+    output_dir = str(board_file.parent) + "/Manufacturing/"
 
     if layers == 2:
         subprocess.run(
@@ -176,8 +184,9 @@ def cam_board_eagle(board_file, layers=2):
         print("Pick number of layers...")
 
 
+# @brief Calls the built in CAMMER from
 def cam_board_kicad(board_file):
-    output_dir = str(board_file.parent.parent) + "/manufacturing/"
+    output_dir = str(board_file.parent) + "/Manufacturing/"
 
     subprocess.run(
         [
@@ -212,7 +221,7 @@ def cam_board_kicad(board_file):
     )
 
 
-def run_fabricate_plugin(board_file):
+def run_fabricate_plugin_kicad(board_file):
     result = subprocess.run(
         [
             "flatpak",
@@ -236,6 +245,9 @@ def run_fabricate_plugin(board_file):
 # ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
 #
 if __name__ == "__main__":
+    # Put the output of fabrication tool in a known state.
+    fabrication_tool_result = -1
+    hardware_directory = None
     # Specifying the arguments for the command line
     parser = argparse.ArgumentParser()
     # We have -c for calling caming processes and -s for calling spreadsheet creation
@@ -247,56 +259,66 @@ if __name__ == "__main__":
     parser.add_argument("directory", help="path to .brd file")
     args = parser.parse_args()
 
-    # Create the output directory "manufacturing" within the parent directory given on the command line
-    # that the output of cammer and csv creation tool expect.
+    # First, validate that the given path has a Hardware direcotry
     parent_product_directory = Path(args.directory)
-    manufacturing_directory = str(parent_product_directory) + "/manufacturing/"
+    for subdir in parent_product_directory.iterdir():
+        if subdir.is_dir() and subdir.name == "Hardware":
+            print("Found Hardware")
+            hardware_directory = subdir
+            break
+        else:
+            sys.exit("No Hardware Directory in the given path.")
+
+    # Create the output directory "Manufacturing" within the parent directory given on the command line
+    # that the output of cammer and csv creation tool expect.
+    manufacturing_directory = str(hardware_directory) + "/Manufacturing/"
     # If it already exists that's fine.
     Path(manufacturing_directory).mkdir(exist_ok=True)
 
-    # Put the output of fabrication tool in a known state.
-    fabrication_tool_result = -1
+    # This is to satisfy the LSP. It may be possible that we get here somehow?
+    assert hardware_directory is not None
 
+    ## Spreadsheet argument
     if args.s:
-        for subdir in parent_product_directory.iterdir():
-            if subdir.is_dir() and subdir.name == "Hardware":
-                print("Found Hardware")
-                for file in subdir.iterdir():
-                    if file.suffix == ".kicad_pcb":
-                        print("Running fabrication plugin.")
-                        fabrication_tool_result = run_fabricate_plugin(file)
+        for file in hardware_directory.iterdir():
+            if file.suffix == ".kicad_pcb":
+                print("Running fabrication plugin on KiCad Board File.\n")
+                fabrication_tool_result = run_fabricate_plugin_kicad(file)
+            elif file.suffix == ".brd":
+                print("Unfortunately there is no headles CLI for this process.")
+                break
         if fabrication_tool_result == 0:
-            print("Checking BOM and positional data")
-            for subdir in parent_product_directory.iterdir():
-                if subdir.is_dir() and subdir.name == "Hardware":
-                    for leaf in subdir.iterdir():
-                        if leaf.is_dir() and leaf.name == "production":
-                            print("Found correct folder")
-                            for file in leaf.iterdir():
-                                if file.stem == "bom" or file.stem == "positions":
-                                    print("Found bom and positions data")
-                                    ulp_csv_update(file)
+            print("Checking BOM and Positional Data.")
+            for subdir in hardware_directory.iterdir():
+                if subdir.is_dir() and subdir.name == "production":
+                    print("Found correct folder")
+                    for file in subdir.iterdir():
+                        if file.stem == "bom":
+                            print("Found BOM CSV.")
+                            ulp_csv_update(file)
+                        elif file.stem == "positions":
+                            print("Found Positions CSV.")
+                            ulp_csv_update(file)
+                        else:
+                            print("Found extraneous CSV.")
         else:
             print("Fabrication ULP did not succesfully run.")
 
     if args.c:
-        for subdir in parent_product_directory.iterdir():
-            if subdir.is_dir() and subdir.name == "Hardware":
-                print("Found Hardware")
-                for file in subdir.iterdir():
-                    if file.suffix == ".kicad_pcb":
-                        print("Found KiCad file, outputing CAM")
-                        cam_board_kicad(file)
-                    elif file.suffix == ".brd":
-                        print("Found Eagle file, outputing CAM")
-                        cam_board_eagle(file)
+        for file in hardware_directory.iterdir():
+            if file.suffix == ".kicad_pcb":
+                print("Found KiCad file, outputing CAM")
+                cam_board_kicad(file)
+            elif file.suffix == ".brd":
+                print("Found Eagle file, outputing CAM")
+                cam_board_eagle(file)
 
         # Add error checking before running this
         print("Zipping cam files.")
-        for subdir in parent_product_directory.iterdir():
-            if subdir.is_dir() and subdir.name == "manufacturing":
+        for subdir in hardware_directory.iterdir():
+            if subdir.is_dir() and subdir.name == "Manufacturing":
                 with zipfile.ZipFile(
-                    parent_product_directory / (parent_product_directory.name + ".zip"),
+                    subdir / (parent_product_directory.name + ".zip"),
                     "w",
                 ) as zf:
                     for file in subdir.iterdir():
