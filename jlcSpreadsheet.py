@@ -5,6 +5,7 @@ import pandas as pd
 import sys
 from pathlib import Path
 import zipfile
+import xml.etree.ElementTree as ET
 
 CAM_FILE_TWO_LAYER = (
     "/home/amo/SparkFun/SparkFun_Eagle_Settings/cam/sfe-gerb274x-2layer.cam"
@@ -155,6 +156,116 @@ def add_jlc_part_numbers_to_csv(csv_directory, updated_csv_file):
     csv_without_part_numbers.to_csv(updated_csv_file, index=False)
 
 
+def parse_eagle_brd(board_file):
+    root = ET.parse(board_file).getroot()
+    board = root.find("drawing/board")
+
+    # Build set of (library, package) combos that have at least one SMD pad or TH pad.
+    # This mirrors the ULP's contact check: only elements whose package has real contacts
+    # are included (filters out logos, silkscreen labels, buzzard labels, etc.).
+    # All was taken from jlpcb exporting ulp written for Eagle.
+    assert board is not None
+    smt_packages = set()
+    # All the vital information hre
+    for lib in board.findall("libraries/library"):
+        lib_name = lib.get("name")
+        for pkg in lib.findall(".//package"):
+            if pkg.find("smd") is not None or pkg.find("pad") is not None:
+                smt_packages.add((lib_name, pkg.get("name")))
+
+    rows = []
+    for el in board.findall("elements/element"):
+        # skip DNP
+        if el.get("populate") == "no":
+            continue
+
+        lib, pkg = el.get("library"), el.get("package")
+        if (lib, pkg) not in smt_packages:
+            continue
+
+        child_attrs = {
+            a.get("name"): a.get("value", "") for a in el.findall("attribute")
+        }
+
+        if "DNP" in child_attrs:
+            continue
+
+        rot = el.get("rot", "R0")
+        mirrored = rot.startswith("M")
+        angle = float(rot.lstrip("MR") or "0")
+        if "JLC_ROTATION" in child_attrs:
+            angle = (angle + float(child_attrs["JLC_ROTATION"])) % 360
+
+        rows.append(
+            {
+                "Designator": el.get("name"),
+                "Value": el.get("value", ""),
+                "Footprint": pkg,
+                "Mid X": float(el.get("x")),
+                "Mid Y": float(el.get("y")),
+                "Layer": "Bottom" if mirrored else "Top",
+                "Rotation": angle % 360,
+                "LCSC Part #": child_attrs.get("LCSC_PART")
+                or child_attrs.get("LCSC", ""),
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def eagle_brd_to_manufacturing_csvs(board_file):
+    production_directory = str(board_file.parent) + "/production/"
+    Path(production_directory).mkdir(exist_ok=True)
+
+    df = parse_eagle_brd(board_file)
+
+    # CPL
+    cpl = df[["Designator", "Mid X", "Mid Y", "Layer", "Rotation"]].sort_values(
+        "Designator"
+    )
+    cpl_path = production_directory + "positions.csv"
+    cpl.to_csv(cpl_path, index=False)
+    print(f"Position file written here: {cpl_path}")
+
+    # BOM — empty-value components get individual rows; others are grouped by value+footprint
+    bom_rows = []
+    df_sorted = df.sort_values(["Value", "Footprint", "Designator"])
+
+    for _, row in df_sorted[df_sorted["Value"].str.strip() == ""].iterrows():
+        bom_rows.append(
+            {
+                "Designator": row["Designator"],
+                "Footprint": row["Footprint"],
+                "Quantity": 1,
+                "Value": "",
+                "LCSC Part #": row["LCSC Part #"],
+            }
+        )
+
+    has_value = df_sorted[df_sorted["Value"].str.strip() != ""]
+    for (value, footprint), group in has_value.groupby(
+        ["Value", "Footprint"], sort=True
+    ):
+        bom_rows.append(
+            {
+                "Designator": " ".join(group["Designator"].tolist()),
+                "Footprint": footprint,
+                "Quantity": len(group),
+                "Value": value,
+                "LCSC Part #": group["LCSC Part #"].iloc[0],
+            }
+        )
+
+    bom = pd.DataFrame(
+        bom_rows,
+        columns=["Designator", "Footprint", "Quantity", "Value", "LCSC Part #"],
+    )
+    bom_path = production_directory + "bom.csv"
+    bom.to_csv(bom_path, index=False)
+    print(f"BOM file written here: {bom_path}")
+    return 0
+
+
 def cam_board_eagle(board_file, layers=2):
     output_dir = str(board_file.parent) + "/Manufacturing/"
 
@@ -284,8 +395,14 @@ if __name__ == "__main__":
             if file.suffix == ".kicad_pcb":
                 print("Running fabrication plugin on KiCad Board File.\n")
                 fabrication_tool_result = run_fabricate_plugin_kicad(file)
+                break
             elif file.suffix == ".brd":
-                print("Unfortunately there is no headles CLI for this process.")
+                print(
+                    "Creating BOM and Positions CSVs for Eagle Board {0}.\n".format(
+                        file
+                    )
+                )
+                fabrication_tool_result = eagle_brd_to_manufacturing_csvs(file)
                 break
         if fabrication_tool_result == 0:
             print("Checking BOM and Positional Data.")
