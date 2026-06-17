@@ -24,7 +24,8 @@ keep_columns = [
 ]
 
 # @brief An array of strings to compare csv files against.
-exclude_labels = ["FD", "TP", "FID", "SJ", "DNP", "JP", "ST"]
+designator_exclude_labels = ["FD", "TP", "FID", "SJ", "DNP", "JP", "ST"]
+footprint_exclude_labels = ["JUMPER"]
 
 layer_suffixes = [
     "GBL",
@@ -69,9 +70,17 @@ def ulp_csv_update(spreadsheet_file):
     # Read in the given cs, can be position or BOM csv.
     csv_pd = pd.read_csv(spreadsheet_file)
     # Return a copy of the csv that removes the rows from the column "Designator" that match the labels within
-    # "exclude_labels". Note that this is in fact making a csv that match the labels of the list, but inverts the
+    # "designator_exclude_labels". Note that this is in fact making a csv that match the labels of the list, but inverts the
     # matching behavior: ~
-    updated_csv = csv_pd[~csv_pd["Designator"].str.contains("|".join(exclude_labels))]
+    updated_csv = csv_pd[
+        ~csv_pd["Designator"].str.contains("|".join(designator_exclude_labels))
+    ]
+
+    if spreadsheet_file.stem != "positions":
+        updated_csv = updated_csv[
+            ~updated_csv["Footprint"].str.contains("|".join(footprint_exclude_labels))
+        ]
+
     alphabetized_csv = updated_csv.sort_values("Designator")
 
     # Print it so that we can check it at a glance on the terminal
@@ -134,6 +143,33 @@ def add_jlc_part_numbers_to_csv(csv_directory, updated_csv_file):
     )
 
     print("Done merging files.")
+    print("Manually adding certain LCSC Part numbers.")
+    csv_without_part_numbers.loc[
+        csv_without_part_numbers["Value"].str.contains(
+            "QWIIC_RA|1X04_1MM_RA", case=False
+        ),
+        "LCSC Part #",
+    ] = "C2859067"
+    csv_without_part_numbers.loc[
+        csv_without_part_numbers["Value"].str.contains(
+            "QWIIC_Vertical|Vertical Qwiic Connector", case=False
+        ),
+        "LCSC Part #",
+    ] = "C9900142565"
+    csv_without_part_numbers.loc[
+        csv_without_part_numbers["Value"].str.contains(
+            "USB_C_Receptacle|USB Female Type C Connector", case=False
+        ),
+        "LCSC Part #",
+    ] = "C709357 or C393939 or C165948"
+    csv_without_part_numbers.loc[
+        csv_without_part_numbers["Value"].str.contains(
+            "TACTILE_SWITCH_SMD_4.6X2.8MM|MOMENTARY-SWITCH-SPST-SMD-4.6X2.8MM|Reset|Boot",
+            case=False,
+        ),
+        "LCSC Part #",
+    ] = "C2888425 or C2690011 or C920226"
+
     csv_without_part_numbers.to_csv(updated_csv_file, index=False)
 
 
@@ -353,14 +389,23 @@ if __name__ == "__main__":
 
     # First, validate that the given path has a Hardware direcotry
     parent_product_directory = Path(args.directory)
+
+    if not parent_product_directory.is_dir():
+        print("-------------------------------------")
+        print("The given directory is not a direcotry.")
+        print("-------------------------------------\n")
+        sys.exit(1)
+
     for subdir in parent_product_directory.iterdir():
-        if subdir.is_dir() and subdir.name == "Hardware":
-            print("Found Hardware")
+        if subdir.is_dir() and subdir.name.lower() == "hardware":
             hardware_directory = subdir
             break
-        else:
-            sys.exit("No Hardware Directory in the given path.")
 
+    if hardware_directory is not None:
+        print("Found Hardware Directory")
+    else:
+        print("The given directory does not have a Hardware directory")
+        sys.exit(1)
     # Create the output directory "Manufacturing" within the parent directory given on the command line
     # that the output of cammer and csv creation tool expect.
     manufacturing_directory = str(hardware_directory) + "/Manufacturing/"
