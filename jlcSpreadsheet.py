@@ -146,7 +146,7 @@ def add_jlc_part_numbers_to_csv(csv_directory, updated_csv_file):
     print("Manually adding certain LCSC Part numbers.")
     csv_without_part_numbers.loc[
         csv_without_part_numbers["Value"].str.contains(
-            "QWIIC_RA|1X04_1MM_RA", case=False
+            "QWIIC_RA|1X04_1MM_RA|Qwiic_Right_Angle", case=False
         ),
         "LCSC Part #",
     ] = "C2859067"
@@ -445,7 +445,9 @@ if __name__ == "__main__":
                         else:
                             print("Found extraneous CSV.")
         else:
-            print("Fabrication ULP did not succesfully run.")
+            print(
+                "Fabrication ULP did not succesfully run.\nMost likely the Design Files are nested within another directory within the Hardware Files."
+            )
 
     if args.c:
         for file in hardware_directory.iterdir():
