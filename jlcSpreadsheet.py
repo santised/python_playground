@@ -25,7 +25,16 @@ keep_columns = [
 
 # @brief An array of strings to compare csv files against.
 designator_exclude_labels = ["FD", "TP", "FID", "SJ", "DNP", "JP", "ST"]
-footprint_exclude_labels = ["JUMPER"]
+footprint_exclude_labels = [
+    "JUMPER",
+    "1x01",
+    "1x02",
+    "1x03",
+    "1x04",
+    "1x06",
+    "1x06",
+    "1x07",
+]
 
 layer_suffixes = [
     "GBL",
@@ -80,11 +89,13 @@ def ulp_csv_update(spreadsheet_file):
         updated_csv = updated_csv[
             ~updated_csv["Footprint"].str.contains("|".join(footprint_exclude_labels))
         ]
+        # Look at BOM and make a list of all designators and if they're not in the position file then remove them from
+        # the position file.
 
     alphabetized_csv = updated_csv.sort_values("Designator")
 
     # Print it so that we can check it at a glance on the terminal
-    print(alphabetized_csv)
+    # print(alphabetized_csv)
 
     print("Update CSV is here: {0}\n".format(updated_csv_output))
     alphabetized_csv.to_csv(updated_csv_output, index=False)
@@ -171,6 +182,47 @@ def add_jlc_part_numbers_to_csv(csv_directory, updated_csv_file):
     ] = "C2888425 or C2690011 or C920226"
 
     csv_without_part_numbers.to_csv(updated_csv_file, index=False)
+
+
+def compare_designators_between_csvs(production_file_directory):
+    bom_file = None
+    position_file = None
+    for file in production_file_directory.iterdir():
+        if file.stem == "bom":
+            bom_file = file
+        elif file.stem == "positions":
+            position_file = file
+        else:
+            print(".")
+
+    if bom_file is None or position_file is None:
+        print("Could not find both bom and positions files.")
+        return
+
+    bom_df = pd.read_csv(bom_file)
+    positions_df = pd.read_csv(position_file)
+
+    # BOM Designator cells may contain multiple designators (e.g. "J1, J2"), so
+    # split each cell and flatten into a single set of individual designators.
+    bom_designators = set()
+    for cell in bom_df["Designator"].dropna():
+        for des in str(cell).split(","):
+            bom_designators.add(des.strip())
+
+    removed = positions_df[~positions_df["Designator"].isin(bom_designators)][
+        "Designator"
+    ].tolist()
+    filtered_positions = positions_df[positions_df["Designator"].isin(bom_designators)]
+
+    if removed:
+        print(
+            f"Removing {len(removed)} designator(s) from positions not found in BOM: {removed}"
+        )
+    else:
+        print("All position designators are present in the BOM.")
+
+    filtered_positions.to_csv(position_file, index=False)
+    print(f"Updated positions file written to {position_file}")
 
 
 def parse_eagle_brd(board_file):
@@ -444,6 +496,9 @@ if __name__ == "__main__":
                             ulp_csv_update(file)
                         else:
                             print("Found extraneous CSV.")
+            for subdir in hardware_directory.iterdir():
+                if subdir.is_dir() and subdir.name == "Manufacturing":
+                    compare_designators_between_csvs(subdir)
         else:
             print(
                 "Fabrication ULP did not succesfully run.\nMost likely the Design Files are nested within another directory within the Hardware Files."
