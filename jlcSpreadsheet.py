@@ -30,7 +30,7 @@ footprint_exclude_labels = [
     "1x01",
     "1x02",
     "1x03",  # 1x04 is the Qwiic connector
-    "1X04",
+    "1x04",
     "1x06",
     "1x06",
     "1x07",
@@ -92,6 +92,11 @@ def ulp_csv_update(spreadsheet_file):
     if spreadsheet_file.stem != "positions":
         updated_csv = updated_csv[
             ~updated_csv["Footprint"].str.contains("|".join(footprint_exclude_labels))
+        ]
+        updated_csv = updated_csv[
+            ~updated_csv["Footprint"].str.contains(
+                "|".join(footprint_exclude_labels).upper()
+            )
         ]
         # Look at BOM and make a list of all designators and if they're not in the position file then remove them from
         # the position file.
