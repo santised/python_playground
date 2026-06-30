@@ -29,11 +29,15 @@ footprint_exclude_labels = [
     "JUMPER",
     "1x01",
     "1x02",
-    "1x03",
-    "1x04",
+    "1x03",  # 1x04 is the Qwiic connector
+    "1X04",
     "1x06",
     "1x06",
     "1x07",
+    "2x01",
+    "2x02",
+    "2x03",
+    "Ordering_Instructions",
 ]
 
 layer_suffixes = [
@@ -175,7 +179,7 @@ def add_jlc_part_numbers_to_csv(csv_directory, updated_csv_file):
     ] = "C709357 or C393939 or C165948"
     csv_without_part_numbers.loc[
         csv_without_part_numbers["Value"].str.contains(
-            "TACTILE_SWITCH_SMD_4.6X2.8MM|MOMENTARY-SWITCH-SPST-SMD-4.6X2.8MM|Reset|Boot",
+            "TACTILE_SWITCH_SMD_4.6X2.8MM|MOMENTARY-SWITCH-SPST-SMD-4.6X2.8MM|Reset|Boot|SMD_4.6x2.8mm_h2.5mm",
             case=False,
         ),
         "LCSC Part #",
@@ -202,11 +206,11 @@ def compare_designators_between_csvs(production_file_directory):
     bom_df = pd.read_csv(bom_file)
     positions_df = pd.read_csv(position_file)
 
-    # BOM Designator cells may contain multiple designators (e.g. "J1, J2"), so
-    # split each cell and flatten into a single set of individual designators.
+    # BOM Designator cells may contain multiple designators separated by commas
+    # or spaces (e.g. "R3 R6", "J1, J2"), so split on both and flatten.
     bom_designators = set()
     for cell in bom_df["Designator"].dropna():
-        for des in str(cell).split(","):
+        for des in str(cell).replace(",", " ").split():
             bom_designators.add(des.strip())
 
     removed = positions_df[~positions_df["Designator"].isin(bom_designators)][
