@@ -24,19 +24,20 @@ keep_columns = [
 ]
 
 # @brief An array of strings to compare csv files against.
-designator_exclude_labels = ["FD", "TP", "FID", "SJ", "DNP", "JP", "ST"]
+designator_exclude_labels = ["FD", "TP", "FID", "SJ", "DNP", "JP", "ST", "E"]
 footprint_exclude_labels = [
     "JUMPER",
     "1x01",
     "1x02",
     "1x03",  # 1x04 is the Qwiic connector
-    "1x04",
+    # "1x04",
     "1x06",
     "1x06",
     "1x07",
     "2x01",
     "2x02",
     "2x03",
+    "2x3",
     "Ordering_Instructions",
 ]
 
@@ -442,6 +443,9 @@ if __name__ == "__main__":
     # We have -c for calling caming processes and -s for calling spreadsheet creation
     parser.add_argument("-c", action="store_true", help="Cams the given board file")
     parser.add_argument("-s", action="store_true", help="Modifies the given csv file")
+    parser.add_argument(
+        "-d", action="store_true", help="Recursive search for Hardware directories"
+    )
     # The program also expects a directory with which to look for board files and spreasheets.
     # It only needs the top level but requires that the parent folder has a "Hardware" and "production" folder
     # with the expected files within them. The folders are sensitive to these specific cap
